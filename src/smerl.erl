@@ -1,5 +1,5 @@
 %% @author Yariv Sadan <yarivsblog@gmail.com> [http://yarivsblog.com]
-%% @copyright Yariv Sadan 2006-2007
+%% @copyright 2006-2007, 2016 AUTHORS
 %%
 %% @doc  Smerl: Simple Metaprogramming for Erlang
 %%
@@ -16,14 +16,14 @@
 %%  Ulf Wiger. RDBMS is part of Jungerl ([http://jungerl.sf.net]).
 %%
 %%  Here's a quick example illustrating how to use Smerl:
-%%  ```
+%%  <pre lang="erlang">
 %%  test_smerl() ->
 %%    M1 = smerl:new(foo),
 %%    {ok, M2} = smerl:add_func(M1, "bar() -> 1 + 1."),
 %%    smerl:compile(M2),
-%%    foo:bar(),   % returns 2``
+%%    foo:bar(),   % returns 2
 %%    smerl:has_func(M2, bar, 0). % returns true
-%%  '''
+%%  </pre>
 %%
 %%  New functions can be expressed either as strings of Erlang code
 %%  or as abstract forms. For more information, read the Abstract Format
@@ -32,11 +32,11 @@
 %%
 %%  Using the abstract format, the 3rd line of the above example
 %%   would be written as
-%%   ```
+%%   <pre lang="erlang">
 %%     {ok,M2} = smerl:add_func(M1, {function,1,bar,0,
 %%                              [{clause,1,[],[],
 %%                               [{op,1,'+',{integer,1,1},{integer,1,1}}]}]).
-%%   '''
+%%   </pre>
 %%
 %%   <p>The abstact format may look more verbose in this example, but
 %%   it's also easier to manipulate in code.</p>

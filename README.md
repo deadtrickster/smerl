@@ -16,6 +16,35 @@ __Version:__ 0.0.1
 Extracted from [abandoned Erlyweb](https://github.com/yariv/erlyweb).
 Plus patches from Erlyweb forks.
 
+## Examples
+
+Define module `foo` and function `bar` using string of Erlang code:
+
+```erlang
+
+  M1 = smerl:new(foo),
+  {ok, M2} = smerl:add_func(M1, "bar() -> 1 + 1."),
+  smerl:compile(M2),
+  foo:bar(). %% => 2
+  smerl:has_func(M2, bar, 0). %% => true
+
+```
+
+Define module `foo` and function `bar` using Erlang Abstract Format:
+
+```erlang
+
+  M1 = smerl:new(foo),
+  {ok, M2} = smerl:add_func(M1, {function, 1, bar, 0,
+                                [{clause, 1, [], [],
+                                  [{op, 1, '+',
+                                    {integer, 1, 1},
+                                    {integer, 1, 1}}]}]}),
+  smerl:compile(M2),
+  ?assertMatch(2, foo:bar()),
+
+```
+
 ## Contributing
 
 Sections order:

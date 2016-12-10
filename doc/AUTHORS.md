@@ -1,0 +1,3 @@
+- Yariv Sadan yarivsblog@gmail.com;
+- Ilya Khaprov i.khaprov@gmail.com;
+- Eric Bailey eric@ericb.me.

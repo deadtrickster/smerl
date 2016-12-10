@@ -8,7 +8,7 @@
 
 Smerl: Simple Metaprogramming for Erlang.
 
-Copyright (c) Yariv Sadan 2006-2007
+Copyright (c) 2006-2007, 2016 AUTHORS
 
 __Authors:__ Yariv Sadan ([`yarivsblog@gmail.com`](mailto:yarivsblog@gmail.com)) (_web site:_ [`http://yarivsblog.com`](http://yarivsblog.com)).
 
@@ -30,12 +30,13 @@ Ulf Wiger. RDBMS is part of Jungerl ([`http://jungerl.sf.net`](http://jungerl.sf
 
 Here's a quick example illustrating how to use Smerl:
 
-```
+```erlang
+
    test_smerl() ->
      M1 = smerl:new(foo),
      {ok, M2} = smerl:add_func(M1, "bar() -> 1 + 1."),
      smerl:compile(M2),
-     foo:bar(),   % returns 2``
+     foo:bar(),   % returns 2
      smerl:has_func(M2, bar, 0). % returns true
 ```
 
@@ -47,7 +48,8 @@ section in the ERTS User's guide
 Using the abstract format, the 3rd line of the above example
 would be written as
 
-```
+```erlang
+
       {ok,M2} = smerl:add_func(M1, {function,1,bar,0,
                                [{clause,1,[],[],
                                 [{op,1,'+',{integer,1,1},{integer,1,1}}]}]).
