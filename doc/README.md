@@ -11,6 +11,11 @@ __Version:__ 0.0.1
 [![Build Status](https://travis-ci.org/deadtrickster/smerl.svg?branch=version-3)](https://travis-ci.org/deadtrickster/smerl)
 [![Coverage Status](https://coveralls.io/repos/github/deadtrickster/smerl/badge.svg?branch=master)](https://coveralls.io/github/deadtrickster/smerl?branch=master)
 
+## Origins
+
+Extracted from [abandoned Erlyweb](https://github.com/yariv/erlyweb).
+Plus patches from Erlyweb forks.
+
 ## Contributing
 
 Sections order:
@@ -34,3 +39,11 @@ Pre-commit check can be skipped passing `--no-verify` option to git commit.
 ## License
 
 MIT
+
+
+## Modules ##
+
+
+<table width="100%" border="0" summary="list of modules">
+<tr><td><a href="smerl.md" class="module">smerl</a></td></tr></table>
+

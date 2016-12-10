@@ -9,6 +9,11 @@
 [![Build Status](https://travis-ci.org/deadtrickster/smerl.svg?branch=version-3)](https://travis-ci.org/deadtrickster/smerl)
 [![Coverage Status](https://coveralls.io/repos/github/deadtrickster/smerl/badge.svg?branch=master)](https://coveralls.io/github/deadtrickster/smerl?branch=master)
 
+## Origins
+
+Extracted from [abandoned Erlyweb](https://github.com/yariv/erlyweb).
+Plus patches from Erlyweb forks.
+
 ## Contributing
 
 Sections order:

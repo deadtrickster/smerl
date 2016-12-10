@@ -1,5 +1,5 @@
 {application, smerl,
- [{description, ""},
+ [{description, "Simple Metaprogramming for Erlang"},
   {vsn, "0.0.1"},
   {registered, []},
   {applications,
@@ -9,7 +9,7 @@
   {env,[]},
   {modules, []},
 
-  {maintainers, ["Ilya Khaprov"]},
+  {maintainers, ["Ilya Khaprov", "Eric Bailey"]},
   {licenses, ["MIT"]},
   {links, [{"Github", "https://github.com/deadtrickster/smerl"}]}
  ]}.
