@@ -1,4 +1,4 @@
-%% @author Yariv Sadan <yarivsblog@gmail.com> [http://yarivsblog.com]
+%% @author AUTHORS
 %% @copyright 2006-2007, 2016 AUTHORS
 %%
 %% @doc  Smerl: Simple Metaprogramming for Erlang

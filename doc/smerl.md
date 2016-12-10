@@ -10,7 +10,7 @@ Smerl: Simple Metaprogramming for Erlang.
 
 Copyright (c) 2006-2007, 2016 AUTHORS
 
-__Authors:__ Yariv Sadan ([`yarivsblog@gmail.com`](mailto:yarivsblog@gmail.com)) (_web site:_ [`http://yarivsblog.com`](http://yarivsblog.com)).
+__Authors:__ AUTHORS.
 
 <a name="description"></a>
 
