@@ -1,4 +1,4 @@
-@copyright 2016 Ilya Khaprov <<i.khaprov@gmail.com>>.
+@copyright 2006-2007, 2016 AUTHORS 
 @title smerl
 @version 0.0.1
 
@@ -20,6 +20,12 @@ install git precommit hook:
 ```./bin/pre-commit.sh install'''
 
  Pre-commit check can be skipped passing `--no-verify' option to git commit.
+ 
+## AUTHORS
+
+- Yariv Sadan yarivsblog.com;
+- Ilya Khaprov i.khaprov@gmail.com;
+- Eric Bailey eric@ericb.me.
 
 ## License
 
