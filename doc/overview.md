@@ -28,7 +28,7 @@ install git precommit hook:
  
 ## AUTHORS
 
-- Yariv Sadan yarivsblog.com;
+- Yariv Sadan yarivsblog@gmail.com;
 - Ilya Khaprov i.khaprov@gmail.com;
 - Eric Bailey eric@ericb.me.
 
