@@ -12,7 +12,7 @@ basic_text_test() ->
 basic_ast_test() ->
 
   M1 = smerl:new(foo),
-  {ok,M2} = smerl:add_func(M1, {function, 1, bar, 0,
+  {ok, M2} = smerl:add_func(M1, {function, 1, bar, 0,
                                 [{clause, 1, [], [],
                                   [{op, 1, '+',
                                     {integer, 1, 1},
