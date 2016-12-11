@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env sh
+
 if [ $# -eq 0 ]; then
     git stash -q --keep-index
     ./bin/checks.sh

@@ -1,6 +1,5 @@
 .rebar3
 rebar3.crashdump
-_*
 .eunit
 *.o
 *.beam
