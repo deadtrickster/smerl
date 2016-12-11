@@ -300,14 +300,14 @@ get_forms(Module, Path) ->
   end.
 
 get_dirs_in_dir(Dir) ->
-  case file:list_dir(Dir) of
+  case list_dir(Dir) of
     {error, _} ->
       undefined;
     {ok, Listing} ->
       lists:foldl(
         fun (Name, Acc) ->
             Path = Dir ++ "/" ++ Name,
-            case file:read_file_info(Path) of
+            case read_file_info(Path) of
               {ok, #file_info{type=directory}} -> [Path | Acc];
               _ -> Acc
             end
@@ -344,7 +344,7 @@ get_forms_from_file_list(_Module, _Basedir, []) ->
   [];
 get_forms_from_file_list(Module, Basedir, [H|T]) ->
   Filename = H ++ "/" ++ atom_to_list(Module) ++ ".erl",
-  case file:read_file_info(Filename) of
+  case read_file_info(Filename) of
     {ok, #file_info{type=regular}} ->
       epp:parse_file(Filename, [filename:dirname(Filename)], []);
     _ ->
@@ -509,8 +509,14 @@ compile(MetaMod, Options) ->
             end,
       case Res of
         ok ->
+          Filename = case code:which(Module) of
+                       non_existing ->
+                         atom_to_list(Module) ++ ".erl";
+                       Path ->
+                         Path
+                     end,
           code:purge(Module),
-          case code:load_binary(Module, atom_to_list(Module) ++ ".erl", Bin) of
+          case code:load_binary(Module, Filename, Bin) of
             {module, _Module} -> ok;
             Err               -> Err
           end;
@@ -924,5 +930,20 @@ to_src(MetaMod) ->
     Error    :: term().
 to_src(MetaMod, Filename) ->
   file:write_file(Filename, to_src(MetaMod)).
+
+%%% ===================================================== [ Internal functions ]
+
+-spec list_dir(Dir :: file:dirname()) -> Result when
+    Result :: result([file:filename()], erl_prim_loader).
+list_dir(Dir) ->
+  handle_list_dir(erl_prim_loader:list_dir(Dir)).
+
+handle_list_dir(error)           -> {error, erl_prim_loader};
+handle_list_dir({ok, Filenames}) -> {ok, Filenames}.
+
+-spec read_file_info(Filename :: file:filename()) -> Result when
+    Result :: result(file:file_info(), file:posix() | badarg).
+read_file_info(Filename) ->
+  erl_prim_loader:read_file_info(Filename).
 
 %%% ==================================================================== [ EOF ]
