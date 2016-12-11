@@ -110,8 +110,8 @@ See the [AUTHORS][] file.
 [Ulf Wiger]: https://github.com/uwiger
 [`smerl`]: ./src/smerl.erl
 [Erlyweb forks]: https://github.com/yariv/erlyweb/network
-[AUTHORS]: ./AUTHORS.md
-[LICENSE]: ./LICENSE
+[AUTHORS]: https://github.com/deadtrickster/smerl/blob/master/doc/AUTHORS.md
+[LICENSE]: https://github.com/deadtrickster/smerl/blob/master/LICENSE
 
 
 ## Modules ##
