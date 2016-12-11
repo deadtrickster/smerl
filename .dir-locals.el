@@ -1,5 +1,5 @@
 ((nil         . ((indent-tabs-mode             . nil)
-                 (fill-column                  . 90)
+                 (fill-column                  . 80)
                  (eval                         . (turn-on-fci-mode))))
  (erlang-mode . ((flycheck-erlang-include-path . ("../include"
                                                   "../../include"
