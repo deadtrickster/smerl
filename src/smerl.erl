@@ -1,49 +1,8 @@
+%% @doc Simple Metaprogramming for Erlang
 %% @author AUTHORS
 %% @copyright 2006-2007, 2016 AUTHORS
 %%
-%% @doc  Smerl: Simple Metaprogramming for Erlang
-%%
-%%  Smerl is an Erlang library
-%%  that simplifies the creation and manipulation of Erlang modules in
-%%  runtime.
-%%
-%%  You don't need to know Smerl in order to use ErlyWeb; Smerl
-%%  is included in ErlyWeb because ErlyWeb uses it internally.
-%%
-%%  Smerl uses Erlang's capabilities for hot code swapping and
-%%  abstract syntax tree transformations to do its magic. Smerl is inspired by
-%%  the rdbms_codegen.erl module in the RDBMS application written by
-%%  Ulf Wiger. RDBMS is part of Jungerl ([http://jungerl.sf.net]).
-%%
-%%  Here's a quick example illustrating how to use Smerl:
-%%  <pre lang="erlang">
-%%  test_smerl() ->
-%%    M1 = smerl:new(foo),
-%%    {ok, M2} = smerl:add_func(M1, "bar() -> 1 + 1."),
-%%    smerl:compile(M2),
-%%    foo:bar(),   % returns 2
-%%    smerl:has_func(M2, bar, 0). % returns true
-%%  </pre>
-%%
-%%  New functions can be expressed either as strings of Erlang code
-%%  or as abstract forms. For more information, read the Abstract Format
-%%  section in the ERTS User's guide
-%%   ([http://erlang.org/doc/doc-5.5/erts-5.5/doc/html/absform.html#4]).
-%%
-%%  Using the abstract format, the 3rd line of the above example
-%%   would be written as
-%%   <pre lang="erlang">
-%%     {ok,M2} = smerl:add_func(M1, {function,1,bar,0,
-%%                              [{clause,1,[],[],
-%%                               [{op,1,'+',{integer,1,1},{integer,1,1}}]}]).
-%%   </pre>
-%%
-%%   <p>The abstact format may look more verbose in this example, but
-%%   it's also easier to manipulate in code.</p>
-%%
-
-%% Copyright (c) Yariv Sadan 2006-2007
-%%
+%% ```
 %% Permission is hereby granted, free of charge, to any person
 %% obtaining a copy of this software and associated documentation
 %% files (the "Software"), to deal in the Software without restriction,
@@ -62,7 +21,7 @@
 %% CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 %% TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 %% SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
+%% ```
 
 -module(smerl).
 -author("Yariv Sadan (yarivsblog@gmail.com, http://yarivsblog.com").
