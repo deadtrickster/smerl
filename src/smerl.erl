@@ -43,9 +43,9 @@
          rename/2,
          curry/2, curry/4, curry/5,
          curry_add/3, curry_add/4, curry_add/5, curry_add/6,
-         curry_replace/3, curry_replace/4, embed_args/2,
-         embed_args/4, embed_args/5, embed_all/2, extend/2,
-         extend/3, extend/4,
+         curry_replace/3, curry_replace/4,
+         embed_args/2, embed_args/4, embed_args/5, embed_all/2,
+         extend/2, extend/3, extend/4,
          to_src/1, to_src/2
         ]).
 
@@ -54,7 +54,8 @@
 -export_type([args/0, export/0, exports/0,
               func_form/0, func_forms/0,
               meta_mod/0,
-              result/1, result/2]).
+              result/1, result/2,
+              ok_t/1, error_t/1]).
 
 %% TODO: write docstring
 -type args() :: term() | [term()].
@@ -89,6 +90,16 @@
 
 %% TODO: write docstring
 -type result(Value, Error) :: {ok, Value} | {error, Error}.
+
+%% TODO: write docstring
+-type ok_t(Value) :: {ok, Value} | error.
+
+%% TODO: write docstring
+-type error_t(Error) :: ok | {error, Error}.
+
+%%% ================================================================= [ Macros ]
+
+-define(IF(Test, Then, Else), case Test of true -> Then; false -> Else end).
 
 %%% ============================================================= [ Public API ]
 
@@ -127,20 +138,8 @@ for_module(ModuleName, IncludePaths, Macros) when is_atom(ModuleName) ->
    {compile, [_Options, _Version, _Time, {source, Path}]}] =
     ModuleName:module_info(),
   case for_file(Path, IncludePaths, Macros) of
-    {ok, _Mod} = Res->
-      Res;
-    _Err ->
-      case code:which(ModuleName) of
-        Path1 when is_list(Path1) ->
-          case get_forms(ModuleName, Path1) of
-            {ok, Forms} ->
-              mod_for_forms(Forms);
-            _Other ->
-              {error, {invalid_module, ModuleName}}
-          end;
-        _Err1 ->
-          {error, {invalid_module, ModuleName}}
-      end
+    {ok, _Mod} = Res -> Res;
+    _Error           -> get_module_forms(ModuleName)
   end.
 
 %% @equiv for_file(SrcFilePath, [])
@@ -165,30 +164,6 @@ for_file(SrcFilePath, IncludePaths, Macros) ->
     _Err ->
       {error, {invalid_module, SrcFilePath}}
   end.
-
-mod_for_forms([{attribute, _, file, {FileName, _FileNum}},
-               {attribute, _, module, ModuleName}|Forms]) ->
-  {Exports, OtherForms, ExportAll} =
-    lists:foldl(
-      fun({attribute, _, export, ExportList},
-          {ExportsAcc, FormsAcc, ExportAll}) ->
-          {ExportList ++ ExportsAcc, FormsAcc, ExportAll};
-         ({attribute, _, compile, export_all},
-          {ExportsAcc, FormsAcc, _ExportAll}) ->
-          {ExportsAcc, FormsAcc, true};
-         ({eof, _}, Acc) ->
-          Acc;
-         (Form, {ExportsAcc, FormsAcc, ExportAll}) ->
-          {ExportsAcc, [Form | FormsAcc], ExportAll}
-      end, {[], [], false}, Forms),
-  {ok, #meta_mod{module = ModuleName,
-                 file = FileName,
-                 exports = Exports,
-                 forms = OtherForms,
-                 export_all = ExportAll
-                }};
-mod_for_forms(Mod) ->
-  {error, {invalid_module, Mod}}.
 
 %% @doc Return the module name for the meta_mod.
 -spec get_module(MetaMod :: meta_mod()) -> module().
@@ -218,17 +193,13 @@ set_forms(MetaMod, Forms) ->
 %% @doc Return the list of exports in the meta_mod.
 -spec get_exports(MetaMod :: meta_mod()) -> exports().
 get_exports(MetaMod) ->
-  case MetaMod#meta_mod.export_all of
-    false ->
-      MetaMod#meta_mod.exports;
-    true ->
+  ?IF(not MetaMod#meta_mod.export_all, MetaMod#meta_mod.exports,
       lists:foldl(
         fun({function, _L, Name, Arity, _Clauses}, Exports) ->
             [{Name, Arity} | Exports];
            (_Form, Exports) ->
             Exports
-        end, [], MetaMod#meta_mod.forms)
-  end.
+        end, [], MetaMod#meta_mod.forms)).
 
 %% @doc Set the `MetaMod''s export list to `Exports'.
 -spec set_exports(MetaMod, Exports) -> NewMod when
@@ -263,92 +234,12 @@ remove_export(MetaMod, FuncName, Arity) ->
                      lists:delete({FuncName, Arity},
                                   MetaMod#meta_mod.exports)}.
 
-%% @doc Get the value of `MetaMod''s `Attribute'.
--spec get_attribute(MetaMod, Attribute) -> {ok, Value} | error when
-    MetaMod   :: meta_mod(),
-    Attribute :: atom(),
-    Value     :: term().
-get_attribute(MetaMod, AttName) ->
-  case lists:keysearch(AttName, 3, get_forms(MetaMod)) of
-    {value, {attribute, _, _, Val}} ->
-      {ok, Val};
-    _ -> error
-  end.
-
-%% @doc Get the abstract representation, if available, of `Module'.
-%%
-%% Strategy:
-%% <ol>
-%%   <li>Try to get the abstract code from `Module' if it's compiled with
-%%    `debug_info'.</li>
-%%   <li>Look for the source file in the beam file's directory.</li>
-%%   <li>If the file's directory ends with `ebin', then search in
-%%   `[beamdir]/../src'</li>
-%% </ol>
-get_forms(Module, Path) ->
-  case beam_lib:chunks(Path, [abstract_code]) of
-    {ok, {_, [{abstract_code, {raw_abstract_v1, Forms}}]}} ->
-      {ok, Forms};
-    _Err ->
-      case filename:find_src(Module, [{"ebin", "src"}]) of
-        {error, _} = Err ->
-          get_forms_from_binary(Module, Err);
-        {SrcPath, _} ->
-          Filename = SrcPath ++ ".erl",
-          epp:parse_file(Filename, [filename:dirname(Filename)], [])
-      end
-  end.
-
-get_dirs_in_dir(Dir) ->
-  case list_dir(Dir) of
-    {error, _} ->
-      undefined;
-    {ok, Listing} ->
-      lists:foldl(
-        fun (Name, Acc) ->
-            Path = Dir ++ "/" ++ Name,
-            case read_file_info(Path) of
-              {ok, #file_info{type=directory}} -> [Path | Acc];
-              _ -> Acc
-            end
-        end, [], Listing)
-  end.
-
-%% @doc Try to infer module source files from the beam code path.
-get_forms_from_binary(Module, OrigErr) ->
-  Ret =
-    case code:where_is_file(atom_to_list(Module) ++ ".beam") of
-      non_existing ->
-        OrigErr;
-      Filename ->
-        %% We could automatically obtain a list of all dirs under this dir,
-        %%but we just do a hack for now.
-        Basedir = filename:dirname(Filename),
-        Lastdir = filename:basename(Basedir),
-        case Lastdir of
-          "ebin" ->
-            Rootdir = filename:dirname(Basedir),
-            DirList0 = [Rootdir ++ "/src"],
-            DirList = DirList0 ++ get_dirs_in_dir(Rootdir ++ "/src"),
-            get_forms_from_file_list(Module, Rootdir, DirList);
-          _ ->
-            DirList = [Basedir],
-            get_forms_from_file_list(Module, Basedir, DirList)
-        end
-    end,
-  case Ret of
-    [] -> OrigErr;
-    _ -> Ret
-  end.
-get_forms_from_file_list(_Module, _Basedir, []) ->
-  [];
-get_forms_from_file_list(Module, Basedir, [H|T]) ->
-  Filename = H ++ "/" ++ atom_to_list(Module) ++ ".erl",
-  case read_file_info(Filename) of
-    {ok, #file_info{type=regular}} ->
-      epp:parse_file(Filename, [filename:dirname(Filename)], []);
-    _ ->
-      get_forms_from_file_list(Module, Basedir, T)
+%% @doc Get the value of `MetaMod''s `Key' attribute.
+-spec get_attribute(MetaMod :: meta_mod(), Key :: atom()) -> result(term()).
+get_attribute(MetaMod, Key) ->
+  case lists:keyfind(Key, 3, get_forms(MetaMod)) of
+    {attribute, _, _, Val} -> {ok, Val};
+    _                      -> error
   end.
 
 %% @doc Add a new exported function to `MetaMod'.
@@ -372,31 +263,16 @@ add_func(MetaMod, Func, Export) when is_list(Func) ->
     Err ->
       Err
   end;
-add_func(MetaMod, {function, _Line, FuncName, Arity, _Clauses} = Form,
-         true) ->
+add_func(MetaMod, {function, _Line, FuncName, Arity, _Clauses} = Form, true) ->
   Foo = {ok, MetaMod#meta_mod{
                exports = [{FuncName, Arity} | MetaMod#meta_mod.exports],
                forms = [Form | MetaMod#meta_mod.forms]
               }},
   Foo;
-add_func(MetaMod, {function, _Line, _FuncName, _Arity, _Clauses} = Form,
-         false) ->
+add_func(MetaMod, {function, _Line, _Func, _Arity, _Clauses} = Form, false) ->
   {ok, MetaMod#meta_mod{forms = [Form | MetaMod#meta_mod.forms]}};
 add_func(_, _, _) ->
   {error, parse_error}.
-
-parse_func_string(Func) ->
-  case erl_scan:string(Func) of
-    {ok, Toks, _} ->
-      case erl_parse:parse_form(Toks) of
-        {ok, _Form} = Res ->
-          Res;
-        _Err ->
-          {error, parse_error}
-      end;
-    _Err ->
-      {error, parse_error}
-  end.
 
 %% @doc Try to remove `Function' from `MetaMod'.
 %% If the function exists, return the new {@type meta_mod()}.
@@ -441,14 +317,6 @@ get_func(Module, FuncName, Arity) when is_atom(Module) ->
 get_func(MetaMod, FuncName, Arity) ->
   do_get_func(MetaMod#meta_mod.forms, FuncName, Arity).
 
-do_get_func([], FuncName, Arity) ->
-  {error, {function_not_found, {FuncName, Arity}}};
-do_get_func([{function, _Line, FuncName, Arity, _Clauses} = Form | _Rest],
-            FuncName, Arity) ->
-  {ok, Form};
-do_get_func([_Form|Rest], FuncName, Arity) ->
-  do_get_func(Rest, FuncName, Arity).
-
 %% @doc Replace an existing function with a new one. If a matching function
 %% doesn't exist, add `Function' to `MetaMod'. This is tantamount to calling
 %% {@link remove_func/3} followed by {@link add_func/2}.
@@ -469,25 +337,23 @@ replace_func(_MetaMod, _) ->
   {error, parse_error}.
 
 %% @doc Compile `MetaMod' and load the resulting BEAM into the emulator.
-%% @equiv compile(MetaMod, undefined)
--spec compile(MetaMod :: meta_mod()) -> ok | {error, Error :: term()}.
+%% @equiv compile(MetaMod, [])
+-spec compile(MetaMod :: meta_mod()) -> error_t(term()).
 compile(MetaMod) ->
-  compile(MetaMod, undefined).
+  compile(MetaMod, []).
 
 %% @doc Compile `MetaMod' and load the resulting BEAM into the emulator.
 %% `Options' is a list of options as described in the `compile' module in the
 %% Erlang documentation.
 %% If an `outdir' is provided, write the `.beam' file to it.
 %% @equiv compile(MetaMod, [report_errprs, report_warnings, return_errors])
--spec compile(MetaMod, Options) -> ok | {error, Error} when
+-spec compile(MetaMod, Options) -> error_t(term()) when
     MetaMod :: meta_mod(),
-    Options :: undefined | [term()],
-    Error   :: term().
-compile(MetaMod, undefined) ->
+    Options :: [proplists:property()].
+compile(MetaMod, []) ->
   compile(MetaMod, [report_errors, report_warnings,
                     return_errors]);
 
-%% TODO: clean this up and pull out helper functions
 compile(MetaMod, Options) ->
   Forms = [{attribute, 2, module, MetaMod#meta_mod.module},
            {attribute, 3, export, get_exports(MetaMod)}],
@@ -497,35 +363,7 @@ compile(MetaMod, Options) ->
              end,
   Forms1 = [{attribute, 1, file, {FileName, 1}} | Forms],
   Forms2 = Forms1 ++ lists:reverse(MetaMod#meta_mod.forms),
-  case compile:forms(Forms2, Options) of
-    {ok, Module, Bin} ->
-      Res = case lists:keysearch(outdir, 1, Options) of
-              {value, {outdir, OutDir}} ->
-                file:write_file(
-                  OutDir ++
-                    ['/' | atom_to_list(MetaMod#meta_mod.module)] ++
-                    ".beam", Bin);
-              false -> ok
-            end,
-      case Res of
-        ok ->
-          Filename = case code:which(Module) of
-                       non_existing ->
-                         atom_to_list(Module) ++ ".erl";
-                       Path ->
-                         Path
-                     end,
-          code:purge(Module),
-          case code:load_binary(Module, Filename, Bin) of
-            {module, _Module} -> ok;
-            Err               -> Err
-          end;
-        Err ->
-          Err
-      end;
-    Err ->
-      Err
-  end.
+  compile(MetaMod#meta_mod.module, Forms2, Options).
 
 %% @doc Change the name of the function represented by `Form' to `NewName'.
 -spec rename(Form :: func_form(), NewName :: atom()) -> func_form().
@@ -548,40 +386,6 @@ curry({function, Line, Name, Arity, Clauses}, NewArgs) ->
           [curry_clause(Clause, NewArgs) | Clauses1]
       end, [], Clauses),
   {ok, {function, Line, Name, Arity-length(NewArgs), NewClauses}}.
-
-curry_clause({clause, L1, ExistingArgs, Guards, _Exprs} = Clause, NewArgs) ->
-  {FirstArgs, LastArgs} = lists:split(length(NewArgs), ExistingArgs),
-  %% Matches =
-  %%   lists:foldl(
-  %%     fun({Var, NewVal}, Acc) ->
-  %%         [{match, 1, Var, erl_parse:abstract(NewVal)} | Acc]
-  %%     end, [], lists:zip(FirstArgs, NewArgs)),
-  %% {clause, L1, LastArgs, Guards, Matches ++ Exprs}.
-  Vals =
-    lists:foldl(
-      fun({{var, _ , Name}, NewVal}, Acc) ->
-          [{Name, erl_parse:abstract(NewVal)} | Acc];
-         (_, Acc) ->
-          Acc
-      end, [], lists:zip(FirstArgs, NewArgs)),
-  NewExprs = replace_vars(Clause, Vals),
-  {clause, L1, LastArgs, Guards, NewExprs}.
-
-replace_vars(Clause, Vals) ->
-  Tree =
-    erl_syntax_lib:map(
-      fun({var, _L2, Name} = Expr) ->
-          case proplists:lookup(Name, Vals) of
-            none ->
-              Expr;
-            {_, Val} ->
-              Val
-          end;
-         (Expr) ->
-          Expr
-      end, Clause),
-  {clause, _, _, _, NewExprs} = erl_syntax:revert(Tree),
-  NewExprs.
 
 %% @doc Curry `Module':`Function'/`Arity' with the given `Args'.
 -spec curry(Module, Function, Arity, Args) -> result(func_form()) when
@@ -665,26 +469,6 @@ curry_add(MetaMod, Module, Name, Arity, Args, NewName) ->
       Err
   end.
 
-curry_change(MetaMod, Name, Arity, Args, Remove) ->
-  case get_func(MetaMod, Name, Arity) of
-    {ok, OldForm} ->
-      case curry(OldForm, Args) of
-        {ok, NewForm} ->
-          MetaMod1 =
-            case Remove of
-              true ->
-                remove_func(MetaMod, Name, Arity);
-              false ->
-                MetaMod
-            end,
-          add_func(MetaMod1, NewForm);
-        Err ->
-          Err
-      end;
-    Err ->
-      Err
-  end.
-
 %% @doc Replace the function represented by `Form' in `MetaMod'
 %% with its curried form.
 -spec curry_replace(MetaMod, Form, Args) -> result(meta_mod()) when
@@ -711,50 +495,13 @@ curry_replace(MetaMod, Name, Arity, Args) ->
     Vals    :: [{Name :: atom(), Value :: term()}],
     NewForm :: func_form().
 embed_args({function, L, Name, Arity, Clauses}, Vals) ->
-  NewClauses =
-    lists:map(
-      fun({clause, L1, Args, Guards, _Exprs} = Clause) ->
-          {EmbeddedVals, OtherArgs} =
-            lists:foldr(
-              fun({var, _, VarName} = Arg, {Embedded, Rest}) ->
-                  case proplists:lookup(VarName, Vals) of
-                    none ->
-                      {Embedded, [Arg | Rest]};
-                    {_, Val} ->
-                      {[{VarName, erl_parse:abstract(Val)} |
-                        Embedded], Rest}
-                  end;
-                 (Arg, {Embedded, Rest}) ->
-                  {Embedded, [Arg | Rest]}
-              end, {[], []}, Args),
-          NewExprs = replace_vars(Clause, EmbeddedVals),
-          {clause, L1, OtherArgs, Guards, NewExprs}
-          %% {Args1, Matches1, _RemainingVals} =
-          %%   lists:foldl(
-          %%     fun({var, _L2, ArgName} = Arg,
-          %%         {Args2, Matches2, Vals1}) ->
-          %%         case lists:keysearch(ArgName, 1, Vals1) of
-          %%           {value, {_Name, Val} = Elem} ->
-          %%             Match = {match, L1, Arg,
-          %%                      erl_parse:abstract(Val)},
-          %%             {Args2, [Match | Matches2],
-          %%              lists:delete(Elem, Vals1)};
-          %%           false ->
-          %%             {[Arg | Args2], Matches2, Vals1}
-          %%         end;
-          %%        (Arg, {Args2, Matches2, Vals1}) ->
-          %%         {[Arg | Args2], Matches2, Vals1}
-          %%     end, {[], [], Vals}, Args),
-          %% [{clause, L1, lists:reverse(Args1), Guards,
-          %%   lists:reverse(Matches1) ++ Exprs} | Clauses1]
-      end, Clauses),
-  NewArity =
-    case NewClauses of
-      [{clause, _L2, Args, _Guards, _Exprs}|_] ->
-        length(Args);
-      _ ->
-        Arity
-    end,
+  NewClauses = new_clauses(Clauses, Vals),
+  NewArity = case NewClauses of
+               [{clause, _L2, Args, _Guards, _Exprs}|_] ->
+                 length(Args);
+               _ ->
+                 Arity
+             end,
   {function, L, Name, NewArity, NewClauses}.
 
 %% @equiv embed_args(MetaMod, Name, Arity, Values, Name)
@@ -802,12 +549,9 @@ embed_all(MetaMod, Vals) ->
             embed_args(Form, Vals),
           Exports2 = lists:delete({Name, Arity}, Exports1),
           NewExports2 =
-            case length(Exports2) == length(Exports1) of
-              true ->
-                NewExports1;
-              false ->
-                [{Name, NewArity} | NewExports1]
-            end,
+            ?IF(length(Exports2) == length(Exports1),
+                NewExports1,
+                [{Name, NewArity} | NewExports1]),
           {[NewForm | Forms1], Exports2, NewExports2};
          (Form, {Forms1, Exports1, NewExports1}) ->
           {[Form | Forms1], Exports1, NewExports1}
@@ -841,6 +585,12 @@ extend(Parent, Child) ->
 extend(Parent, Child, ArityDiff) ->
   extend(Parent, Child, ArityDiff, []).
 
+-spec extend(Parent, Child, ArityDiff, Options) -> NewChildMod when
+    Parent      :: module() | meta_mod(),
+    Child       :: module() | meta_mod(),
+    ArityDiff   :: non_neg_integer(),
+    Options     :: [proplists:property()],
+    NewChildMod :: meta_mod().
 extend(Parent, Child, ArityDiff, Options) ->
   {{ParentName, ParentExports, ParentMod}, ChildMod} =
     get_extend_data(Parent, Child, Options),
@@ -873,6 +623,240 @@ extend(Parent, Child, ArityDiff, Options) ->
           ChildMod2
       end, ChildMod, ExportsDiff),
   NewChild.
+
+%% @doc Return the pretty-printed source code for `MetaMod'.
+-spec to_src(MetaMod :: meta_mod()) -> Source :: string().
+to_src(MetaMod) ->
+  ExportsForm = {attribute, 1, export, get_exports(MetaMod)},
+  AllForms = [{attribute, 1, module, get_module(MetaMod)}, ExportsForm |
+              get_forms(MetaMod)],
+  erl_prettypr:format(erl_syntax:form_list(AllForms)).
+
+%% @equiv file:write_file(Filename , to_src(MetaMod))
+-spec to_src(MetaMod, Filename) -> error_t(term()) when
+    MetaMod  :: meta_mod(),
+    Filename :: file:filename().
+to_src(MetaMod, Filename) ->
+  file:write_file(Filename, to_src(MetaMod)).
+
+%%% ===================================================== [ Internal functions ]
+
+get_module_forms(ModuleName) ->
+  case code:which(ModuleName) of
+    Path when is_list(Path) ->
+      case get_forms(ModuleName, Path) of
+        {ok, Forms} -> mod_for_forms(Forms);
+        _Error      -> {error, {invalid_module, ModuleName}}
+      end;
+    _Error ->
+      {error, {invalid_module, ModuleName}}
+  end.
+
+mod_for_forms([{attribute, _, file, {FileName, _FileNum}},
+               {attribute, _, module, ModuleName}|Forms]) ->
+  {Exports, OtherForms, ExportAll} =
+    lists:foldl(
+      fun({attribute, _, export, ExportList},
+          {ExportsAcc, FormsAcc, ExportAll}) ->
+          {ExportList ++ ExportsAcc, FormsAcc, ExportAll};
+         ({attribute, _, compile, export_all},
+          {ExportsAcc, FormsAcc, _ExportAll}) ->
+          {ExportsAcc, FormsAcc, true};
+         ({eof, _}, Acc) ->
+          Acc;
+         (Form, {ExportsAcc, FormsAcc, ExportAll}) ->
+          {ExportsAcc, [Form | FormsAcc], ExportAll}
+      end, {[], [], false}, Forms),
+  {ok, #meta_mod{module = ModuleName,
+                 file = FileName,
+                 exports = Exports,
+                 forms = OtherForms,
+                 export_all = ExportAll
+                }};
+mod_for_forms(Mod) ->
+  {error, {invalid_module, Mod}}.
+
+%% @doc Get the abstract representation, if available, of `Module'.
+%%
+%% Strategy:
+%% <ol>
+%%   <li>Try to get the abstract code from `Module' if it's compiled with
+%%    `debug_info'.</li>
+%%   <li>Look for the source file in the beam file's directory.</li>
+%%   <li>If the file's directory ends with `ebin', then search in
+%%   `[beamdir]/../src'</li>
+%% </ol>
+get_forms(Module, Path) ->
+  case beam_lib:chunks(Path, [abstract_code]) of
+    {ok, {_, [{abstract_code, {raw_abstract_v1, Forms}}]}} ->
+      {ok, Forms};
+    _Err ->
+      case filename:find_src(Module, [{"ebin", "src"}]) of
+        {error, _} = Err ->
+          get_forms_from_binary(Module, Err);
+        {SrcPath, _} ->
+          Filename = SrcPath ++ ".erl",
+          epp:parse_file(Filename, [filename:dirname(Filename)], [])
+      end
+  end.
+
+%% @doc Try to infer module source files from the beam code path.
+get_forms_from_binary(Module, OrigErr) ->
+  Ret =
+    case code:where_is_file(atom_to_list(Module) ++ ".beam") of
+      non_existing ->
+        OrigErr;
+      Filename ->
+        %% We could automatically obtain a list of all dirs under this dir,
+        %%but we just do a hack for now.
+        Basedir = filename:dirname(Filename),
+        Lastdir = filename:basename(Basedir),
+        case Lastdir of
+          "ebin" ->
+            Rootdir = filename:dirname(Basedir),
+            DirList0 = [Rootdir ++ "/src"],
+            DirList = DirList0 ++ get_dirs_in_dir(Rootdir ++ "/src"),
+            get_forms_from_file_list(Module, Rootdir, DirList);
+          _ ->
+            DirList = [Basedir],
+            get_forms_from_file_list(Module, Basedir, DirList)
+        end
+    end,
+  case Ret of
+    [] -> OrigErr;
+    _ -> Ret
+  end.
+
+get_dirs_in_dir(Dir) ->
+  case list_dir(Dir) of
+    {ok, Listing} ->
+      lists:filtermap(fun(Name) -> is_directory(Dir, Name) end, Listing);
+    {error, _} ->
+      undefined
+  end.
+
+%% @equiv is_directory(filename:join(Directory, Filename))
+is_directory(Directory, Filename) ->
+  is_directory(filename:join(Directory, Filename)).
+
+is_directory(Filename) ->
+  case read_file_info(Filename) of
+    {ok, #file_info{type=directory}} -> true;
+    _                                -> false
+  end.
+
+get_forms_from_file_list(_Module, _Basedir, []) ->
+  [];
+get_forms_from_file_list(Module, Basedir, [H|T]) ->
+  Filename = H ++ "/" ++ atom_to_list(Module) ++ ".erl",
+  case read_file_info(Filename) of
+    {ok, #file_info{type=regular}} ->
+      epp:parse_file(Filename, [filename:dirname(Filename)], []);
+    _ ->
+      get_forms_from_file_list(Module, Basedir, T)
+  end.
+
+do_get_func([], FuncName, Arity) ->
+  {error, {function_not_found, {FuncName, Arity}}};
+do_get_func([{function, _Line, FuncName, Arity, _Clauses} = Form | _Rest],
+            FuncName, Arity) ->
+  {ok, Form};
+do_get_func([_Form|Rest], FuncName, Arity) ->
+  do_get_func(Rest, FuncName, Arity).
+
+parse_func_string(Func) ->
+  case erl_scan:string(Func) of
+    {ok, Toks, _} ->
+      case erl_parse:parse_form(Toks) of
+        {ok, _Form} = Res ->
+          Res;
+        _Err ->
+          {error, parse_error}
+      end;
+    _Err ->
+      {error, parse_error}
+  end.
+
+compile(ModName, Forms, Options) ->
+  case compile:forms(Forms, Options) of
+    {ok, Module, Bin} ->
+      OutDir = proplists:get_value(outdir, Options),
+      maybe_write_beam_file({ModName, Module}, Bin, OutDir);
+    Err ->
+      Err
+  end.
+
+maybe_write_beam_file({_ModName, Module}, Bin, undefined) ->
+  Filename = case code:which(Module) of
+               non_existing -> atom_to_list(Module) ++ ".erl";
+               Path         -> Path
+             end,
+  code:purge(Module),
+  case code:load_binary(Module, Filename, Bin) of
+    {module, _Module} -> ok;
+    Err               -> Err
+  end;
+maybe_write_beam_file({ModName, _Module}, Bin, OutDir) ->
+  BeamFile = atom_to_list(ModName) ++ ".beam",
+  file:write_file(filename:join(OutDir, BeamFile), Bin).
+
+curry_clause({clause, L1, ExistingArgs, Guards, _Exprs} = Clause, NewArgs) ->
+  {FirstArgs, LastArgs} = lists:split(length(NewArgs), ExistingArgs),
+  Vals = [ {Name, erl_parse:abstract(NewVal)}
+           || {{var, _ , Name}, NewVal} <- lists:zip(FirstArgs, NewArgs) ],
+  NewExprs = replace_vars(Clause, Vals),
+  {clause, L1, LastArgs, Guards, NewExprs}.
+
+replace_vars(Clause, Vals) ->
+  Tree =
+    erl_syntax_lib:map(
+      fun({var, _L2, Name} = Expr) ->
+          case proplists:lookup(Name, Vals) of
+            none ->
+              Expr;
+            {_, Val} ->
+              Val
+          end;
+         (Expr) ->
+          Expr
+      end, Clause),
+  {clause, _, _, _, NewExprs} = erl_syntax:revert(Tree),
+  NewExprs.
+
+curry_change(MetaMod, Name, Arity, Args, Remove) ->
+  case get_func(MetaMod, Name, Arity) of
+    {ok, OldForm} ->
+      case curry(OldForm, Args) of
+        {ok, NewForm} ->
+          MetaMod1 =
+            ?IF(Remove, remove_func(MetaMod, Name, Arity), MetaMod),
+          add_func(MetaMod1, NewForm);
+        Err ->
+          Err
+      end;
+    Err ->
+      Err
+  end.
+
+%% @see embed_args/2
+new_clauses(Clauses, Vals) ->
+  [ begin
+      {EmbeddedVals, OtherArgs} =
+        lists:foldr(
+          fun({var, _, VarName} = Arg, {Embedded, Rest}) ->
+              case proplists:lookup(VarName, Vals) of
+                none ->
+                  {Embedded, [Arg | Rest]};
+                {_, Val} ->
+                  {[{VarName, erl_parse:abstract(Val)} |
+                    Embedded], Rest}
+              end;
+             (Arg, {Embedded, Rest}) ->
+              {Embedded, [Arg | Rest]}
+          end, {[], []}, Args),
+      NewExprs = replace_vars(Clause, EmbeddedVals),
+      {clause, L1, OtherArgs, Guards, NewExprs}
+    end || {clause, L1, Args, Guards, _Exprs} = Clause <- Clauses].
 
 get_extend_data(Parent, Child, Options) when is_atom(Parent) ->
   SrcDir = proplists:get_value(src_dir, Options),
@@ -930,24 +914,6 @@ get_args(ParentMod, FuncName, Arity) ->
         [{clause, _, Args, _Guards, _Exprs} | _]}} =
     get_func(ParentMod, FuncName, Arity),
   Args.
-
-%% @doc Return the pretty-printed source code for `MetaMod'.
--spec to_src(MetaMod :: meta_mod()) -> Source :: string().
-to_src(MetaMod) ->
-  ExportsForm = {attribute, 1, export, get_exports(MetaMod)},
-  AllForms = [{attribute, 1, module, get_module(MetaMod)}, ExportsForm |
-              get_forms(MetaMod)],
-  erl_prettypr:format(erl_syntax:form_list(AllForms)).
-
-%% @equiv file:write_file(Filename , to_src(MetaMod))
--spec to_src(MetaMod, Filename) -> ok | {error, Error} when
-    MetaMod  :: meta_mod(),
-    Filename :: file:filename(),
-    Error    :: term().
-to_src(MetaMod, Filename) ->
-  file:write_file(Filename, to_src(MetaMod)).
-
-%%% ===================================================== [ Internal functions ]
 
 -spec list_dir(Dir :: file:dirname()) -> Result when
     Result :: result([file:filename()], erl_prim_loader).

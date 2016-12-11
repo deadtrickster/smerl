@@ -49,3 +49,68 @@ form_for_fun(Name, Fun) ->
     _Other ->
       {error, bad_fun}
   end.
+
+embed_args({function, L, Name, Arity, Clauses}, Vals) ->
+  NewClauses =
+    lists:map(
+      fun({clause, L1, Args, Guards, _Exprs} = Clause) ->
+          {EmbeddedVals, OtherArgs} =
+            lists:foldr(
+              fun({var, _, VarName} = Arg, {Embedded, Rest}) ->
+                  case proplists:lookup(VarName, Vals) of
+                    none ->
+                      {Embedded, [Arg | Rest]};
+                    {_, Val} ->
+                      {[{VarName, erl_parse:abstract(Val)} |
+                        Embedded], Rest}
+                  end;
+                 (Arg, {Embedded, Rest}) ->
+                  {Embedded, [Arg | Rest]}
+              end, {[], []}, Args),
+          NewExprs = replace_vars(Clause, EmbeddedVals),
+          {clause, L1, OtherArgs, Guards, NewExprs}
+          %% {Args1, Matches1, _RemainingVals} =
+          %%   lists:foldl(
+          %%     fun({var, _L2, ArgName} = Arg,
+          %%         {Args2, Matches2, Vals1}) ->
+          %%         case lists:keysearch(ArgName, 1, Vals1) of
+          %%           {value, {_Name, Val} = Elem} ->
+          %%             Match = {match, L1, Arg,
+          %%                      erl_parse:abstract(Val)},
+          %%             {Args2, [Match | Matches2],
+          %%              lists:delete(Elem, Vals1)};
+          %%           false ->
+          %%             {[Arg | Args2], Matches2, Vals1}
+          %%         end;
+          %%        (Arg, {Args2, Matches2, Vals1}) ->
+          %%         {[Arg | Args2], Matches2, Vals1}
+          %%     end, {[], [], Vals}, Args),
+          %% [{clause, L1, lists:reverse(Args1), Guards,
+          %%   lists:reverse(Matches1) ++ Exprs} | Clauses1]
+      end, Clauses),
+  NewArity =
+    case NewClauses of
+      [{clause, _L2, Args, _Guards, _Exprs}|_] ->
+        length(Args);
+      _ ->
+        Arity
+    end,
+  {function, L, Name, NewArity, NewClauses}.
+
+curry_clause({clause, L1, ExistingArgs, Guards, _Exprs} = Clause, NewArgs) ->
+  {FirstArgs, LastArgs} = lists:split(length(NewArgs), ExistingArgs),
+  %% Matches =
+  %%   lists:foldl(
+  %%     fun({Var, NewVal}, Acc) ->
+  %%         [{match, 1, Var, erl_parse:abstract(NewVal)} | Acc]
+  %%     end, [], lists:zip(FirstArgs, NewArgs)),
+  %% {clause, L1, LastArgs, Guards, Matches ++ Exprs}.
+  Vals =
+    lists:foldl(
+      fun({{var, _ , Name}, NewVal}, Acc) ->
+          [{Name, erl_parse:abstract(NewVal)} | Acc];
+         (_, Acc) ->
+          Acc
+      end, [], lists:zip(FirstArgs, NewArgs)),
+  NewExprs = replace_vars(Clause, Vals),
+  {clause, L1, LastArgs, Guards, NewExprs}.
