@@ -50,6 +50,16 @@ args() = term() | [term()]
 
 
 
+### <a name="type-error_t">error_t()</a> ###
+
+
+<pre><code>
+error_t(Error) = ok | {error, Error}
+</code></pre>
+
+
+
+
 ### <a name="type-export">export()</a> ###
 
 
@@ -98,6 +108,16 @@ for a module.
 
 
 
+### <a name="type-ok_t">ok_t()</a> ###
+
+
+<pre><code>
+ok_t(Value) = {ok, Value} | error
+</code></pre>
+
+
+
+
 ### <a name="type-result">result()</a> ###
 
 
@@ -127,7 +147,7 @@ where the argument's <code>Name</code> matches an element from <code>Vals</code>
 with the corresponding <code>Value</code>.</td></tr><tr><td valign="top"><a href="#embed_args-4">embed_args/4</a></td><td>Equivalent to <a href="#embed_args-5"><tt>embed_args(MetaMod, Name, Arity, Values, Name)</tt></a>.</td></tr><tr><td valign="top"><a href="#embed_args-5">embed_args/5</a></td><td>Apply <a href="#embed_args-2"><code>embed_args/2</code></a> to <code>MetaMod</code>:<code>Function</code>/<code>Arity</code> and
 add the resulting function to <code>MetMod</code>, after renaming it to <code>NewName</code>.</td></tr><tr><td valign="top"><a href="#extend-2">extend/2</a></td><td>Add aliases for <code>Parent</code>'s functions missing from <code>Child</code> to <code>Child</code>.</td></tr><tr><td valign="top"><a href="#extend-3">extend/3</a></td><td>Similar to <a href="#extend-2"><code>extend/2</code></a>, with the addition of <code>ArityDiff</code>, which
 indicates the difference in arities <em>Smerl</em> should use when figuring
-out which functions to generate based on the modules' exports.</td></tr><tr><td valign="top"><a href="#extend-4">extend/4</a></td><td></td></tr><tr><td valign="top"><a href="#for_file-1">for_file/1</a></td><td>Equivalent to <a href="#for_file-2"><tt>for_file(SrcFilePath, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#for_file-2">for_file/2</a></td><td>Equivalent to <a href="#for_file-3"><tt>for_file(SrcFilePath, IncludePaths, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#for_file-3">for_file/3</a></td><td>Create a meta_mod for a module from its source file.</td></tr><tr><td valign="top"><a href="#for_module-1">for_module/1</a></td><td>Equivalent to <a href="#for_module-2"><tt>for_module(ModuleName, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#for_module-2">for_module/2</a></td><td>Equivalent to <a href="#for_module-3"><tt>for_module(ModuleName, IncludePaths, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#for_module-3">for_module/3</a></td><td>Create a meta_mod tuple for an existing module.</td></tr><tr><td valign="top"><a href="#get_attribute-2">get_attribute/2</a></td><td>Get the value of <code>MetaMod</code>'s <code>Attribute</code>.</td></tr><tr><td valign="top"><a href="#get_export_all-1">get_export_all/1</a></td><td>Get the <code>export_all</code> value for <code>MetaMod</code>.</td></tr><tr><td valign="top"><a href="#get_exports-1">get_exports/1</a></td><td>Return the list of exports in the meta_mod.</td></tr><tr><td valign="top"><a href="#get_forms-1">get_forms/1</a></td><td>Return the list of function forms in the meta_mod.</td></tr><tr><td valign="top"><a href="#get_func-3">get_func/3</a></td><td>Attempt to get the <code><a href="#type-func_form">func_form()</a></code> for <code>MetaMod</code>:<code>Function</code>/<code>Arity</code>.</td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Return the module name for the meta_mod.</td></tr><tr><td valign="top"><a href="#has_func-3">has_func/3</a></td><td>Check whether <code>MetaMod</code> has a function <code>Function</code>/<code>Arity</code>.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Create a new meta_mod for a module with the given name.</td></tr><tr><td valign="top"><a href="#remove_export-3">remove_export/3</a></td><td>Remove an export <code>{Function, Arity}</code>
+out which functions to generate based on the modules' exports.</td></tr><tr><td valign="top"><a href="#extend-4">extend/4</a></td><td></td></tr><tr><td valign="top"><a href="#for_file-1">for_file/1</a></td><td>Equivalent to <a href="#for_file-2"><tt>for_file(SrcFilePath, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#for_file-2">for_file/2</a></td><td>Equivalent to <a href="#for_file-3"><tt>for_file(SrcFilePath, IncludePaths, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#for_file-3">for_file/3</a></td><td>Create a meta_mod for a module from its source file.</td></tr><tr><td valign="top"><a href="#for_module-1">for_module/1</a></td><td>Equivalent to <a href="#for_module-2"><tt>for_module(ModuleName, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#for_module-2">for_module/2</a></td><td>Equivalent to <a href="#for_module-3"><tt>for_module(ModuleName, IncludePaths, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#for_module-3">for_module/3</a></td><td>Create a meta_mod tuple for an existing module.</td></tr><tr><td valign="top"><a href="#get_attribute-2">get_attribute/2</a></td><td>Get the value of <code>MetaMod</code>'s <code>Key</code> attribute.</td></tr><tr><td valign="top"><a href="#get_export_all-1">get_export_all/1</a></td><td>Get the <code>export_all</code> value for <code>MetaMod</code>.</td></tr><tr><td valign="top"><a href="#get_exports-1">get_exports/1</a></td><td>Return the list of exports in the meta_mod.</td></tr><tr><td valign="top"><a href="#get_forms-1">get_forms/1</a></td><td>Return the list of function forms in the meta_mod.</td></tr><tr><td valign="top"><a href="#get_func-3">get_func/3</a></td><td>Attempt to get the <code><a href="#type-func_form">func_form()</a></code> for <code>MetaMod</code>:<code>Function</code>/<code>Arity</code>.</td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Return the module name for the meta_mod.</td></tr><tr><td valign="top"><a href="#has_func-3">has_func/3</a></td><td>Check whether <code>MetaMod</code> has a function <code>Function</code>/<code>Arity</code>.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Create a new meta_mod for a module with the given name.</td></tr><tr><td valign="top"><a href="#remove_export-3">remove_export/3</a></td><td>Remove an export <code>{Function, Arity}</code>
 from the list of <code>exports</code> in <code>MetaMod</code>.</td></tr><tr><td valign="top"><a href="#remove_func-3">remove_func/3</a></td><td>Try to remove <code>Function</code> from <code>MetaMod</code>.</td></tr><tr><td valign="top"><a href="#rename-2">rename/2</a></td><td>Change the name of the function represented by <code>Form</code> to <code>NewName</code>.</td></tr><tr><td valign="top"><a href="#replace_func-2">replace_func/2</a></td><td>Replace an existing function with a new one.</td></tr><tr><td valign="top"><a href="#set_export_all-2">set_export_all/2</a></td><td>Set the <code>export_all</code> value for <code>MetaMod</code>.</td></tr><tr><td valign="top"><a href="#set_exports-2">set_exports/2</a></td><td>Set the <code>MetaMod</code>'s export list to <code>Exports</code>.</td></tr><tr><td valign="top"><a href="#set_forms-2">set_forms/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_module-2">set_module/2</a></td><td>Set the meta_mod's module name.</td></tr><tr><td valign="top"><a href="#to_src-1">to_src/1</a></td><td>Return the pretty-printed source code for <code>MetaMod</code>.</td></tr><tr><td valign="top"><a href="#to_src-2">to_src/2</a></td><td>Equivalent to <a href="file.md#write_file-2"><tt>file:write_file(Filename, to_src(MetaMod))</tt></a>.</td></tr></table>
 
 
@@ -167,11 +187,11 @@ Add `Function` to `MetaMod` and return the new <code><a href="#type-meta_mod">me
 ### compile/1 ###
 
 <pre><code>
-compile(MetaMod::<a href="#type-meta_mod">meta_mod()</a>) -&gt; ok | {error, Error::term()}
+compile(MetaMod::<a href="#type-meta_mod">meta_mod()</a>) -&gt; <a href="#type-error_t">error_t</a>(term())
 </code></pre>
 <br />
 
-Equivalent to [`compile(MetaMod, undefined)`](#compile-2).
+Equivalent to [`compile(MetaMod, [])`](#compile-2).
 
 Compile `MetaMod` and load the resulting BEAM into the emulator.
 
@@ -180,10 +200,10 @@ Compile `MetaMod` and load the resulting BEAM into the emulator.
 ### compile/2 ###
 
 <pre><code>
-compile(MetaMod, Options) -&gt; ok | {error, Error}
+compile(MetaMod, Options) -&gt; <a href="#type-error_t">error_t</a>(term())
 </code></pre>
 
-<ul class="definitions"><li><code>MetaMod = <a href="#type-meta_mod">meta_mod()</a></code></li><li><code>Options = undefined | [term()]</code></li><li><code>Error = term()</code></li></ul>
+<ul class="definitions"><li><code>MetaMod = <a href="#type-meta_mod">meta_mod()</a></code></li><li><code>Options = [<a href="proplists.md#type-property">proplists:property()</a>]</code></li></ul>
 
 Equivalent to [`compile(MetaMod,[report_errprs, report_warnings, return_errors])`](#compile-2).
 
@@ -391,7 +411,11 @@ sometimes useful when calling [`extend/3`](#extend-3) followed by [`embed_all/2`
 
 ### extend/4 ###
 
-`extend(Parent, Child, ArityDiff, Options) -> any()`
+<pre><code>
+extend(Parent, Child, ArityDiff, Options) -&gt; NewChildMod
+</code></pre>
+
+<ul class="definitions"><li><code>Parent = module() | <a href="#type-meta_mod">meta_mod()</a></code></li><li><code>Child = module() | <a href="#type-meta_mod">meta_mod()</a></code></li><li><code>ArityDiff = non_neg_integer()</code></li><li><code>Options = [<a href="proplists.md#type-property">proplists:property()</a>]</code></li><li><code>NewChildMod = <a href="#type-meta_mod">meta_mod()</a></code></li></ul>
 
 <a name="for_file-1"></a>
 
@@ -462,12 +486,11 @@ The `IncludePaths` argument is used when `ModuleName` is a file name.
 ### get_attribute/2 ###
 
 <pre><code>
-get_attribute(MetaMod, Attribute) -&gt; {ok, Value} | error
+get_attribute(MetaMod::<a href="#type-meta_mod">meta_mod()</a>, Key::atom()) -&gt; <a href="#type-result">result</a>(term())
 </code></pre>
+<br />
 
-<ul class="definitions"><li><code>MetaMod = <a href="#type-meta_mod">meta_mod()</a></code></li><li><code>Attribute = atom()</code></li><li><code>Value = term()</code></li></ul>
-
-Get the value of `MetaMod`'s `Attribute`.
+Get the value of `MetaMod`'s `Key` attribute.
 
 <a name="get_export_all-1"></a>
 
@@ -662,10 +685,10 @@ Return the pretty-printed source code for `MetaMod`.
 ### to_src/2 ###
 
 <pre><code>
-to_src(MetaMod, Filename) -&gt; ok | {error, Error}
+to_src(MetaMod, Filename) -&gt; <a href="#type-error_t">error_t</a>(term())
 </code></pre>
 
-<ul class="definitions"><li><code>MetaMod = <a href="#type-meta_mod">meta_mod()</a></code></li><li><code>Filename = <a href="file.md#type-filename">file:filename()</a></code></li><li><code>Error = term()</code></li></ul>
+<ul class="definitions"><li><code>MetaMod = <a href="#type-meta_mod">meta_mod()</a></code></li><li><code>Filename = <a href="file.md#type-filename">file:filename()</a></code></li></ul>
 
 Equivalent to [`file:write_file(Filename, to_src(MetaMod))`](file.md#write_file-2).
 

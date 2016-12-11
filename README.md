@@ -118,5 +118,5 @@ See the [AUTHORS][] file.
 
 
 <table width="100%" border="0" summary="list of modules">
-<tr><td><a href="https://github.com/deadtrickster/smerl/blob/feature/yurrriq-cleanup/doc/smerl.md" class="module">smerl</a></td></tr></table>
+<tr><td><a href="https://github.com/deadtrickster/smerl/blob/master/doc/smerl.md" class="module">smerl</a></td></tr></table>
 
