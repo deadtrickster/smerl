@@ -843,7 +843,7 @@ extend(Parent, Child, ArityDiff) ->
 
 extend(Parent, Child, ArityDiff, Options) ->
   {{ParentName, ParentExports, ParentMod}, ChildMod} =
-    get_extend_data(Parent, Child),
+    get_extend_data(Parent, Child, Options),
   ChildExports = get_exports(ChildMod),
   ChildExports1 = [{ExportName, ExportArity + ArityDiff} ||
                     {ExportName, ExportArity} <-
@@ -874,27 +874,20 @@ extend(Parent, Child, ArityDiff, Options) ->
       end, ChildMod, ExportsDiff),
   NewChild.
 
-get_extend_data(Parent, Child) when is_atom(Parent) ->
-  [{exports, Exports} |_] = Parent:module_info(),
-  Exports1 = Exports -- [{module_info, 0}],
-  Exports2 = Exports1 -- [{module_info, 1}],
-  ParentMod = case smerl:for_module(Parent) of
-                {ok, M} -> M;
-                {error, _} -> undefined
-              end,
-  get_extend_data({Parent, Exports2, ParentMod}, Child);
-get_extend_data(Parent, Child) when is_record(Parent, meta_mod) ->
-  get_extend_data({get_module(Parent),
-                   get_exports(Parent),
-                   Parent}, Child);
-get_extend_data(Parent, Child) when is_list(Parent) ->
+get_extend_data(Parent, Child, Options) when is_atom(Parent) ->
+  SrcDir = proplists:get_value(src_dir, Options),
+  do_get_extend_data(Parent, Child, Options, SrcDir);
+get_extend_data(Parent, Child, Options) when is_record(Parent, meta_mod) ->
+  Data = {get_module(Parent), get_exports(Parent), Parent},
+  get_extend_data(Data, Child, Options);
+get_extend_data(Parent, Child, Options) when is_list(Parent) ->
   case for_file(Parent) of
     {ok, M1} ->
-      get_extend_data(M1, Child);
+      get_extend_data(M1, Child, Options);
     Err ->
       Err
   end;
-get_extend_data({_, _, _} = ParentData, Child)
+get_extend_data({_, _, _} = ParentData, Child, _Options)
   when is_atom(Child); is_list(Child) ->
   case for_module(Child) of
     {ok, MetaMod} ->
@@ -902,8 +895,31 @@ get_extend_data({_, _, _} = ParentData, Child)
     Err ->
       Err
   end;
-get_extend_data(ParentData, Child) when is_record(Child, meta_mod) ->
+get_extend_data(ParentData, Child, _Options) when is_record(Child, meta_mod) ->
   {ParentData, Child}.
+
+do_get_extend_data(Parent, Child, Options, undefined) ->
+  [{exports, Exports} |_] = Parent:module_info(),
+  Exports1 = Exports -- [{module_info, 0}],
+  Exports2 = Exports1 -- [{module_info, 1}],
+  ParentMod = case smerl:for_module(Parent) of
+                {ok, M}    -> M;
+                {error, _} -> undefined
+              end,
+  get_extend_data({Parent, Exports2, ParentMod}, Child, Options);
+do_get_extend_data(Parent, Child, Options, Dir) ->
+  Filename = filename:join(Dir, atom_to_list(Parent) ++ ".erl"),
+  %% Check if file exists
+  case read_file_info(Filename) of
+    {ok, _FileInfo} ->
+      ParentMod = case smerl:for_file(Filename) of
+                    {ok, MetaMod} -> MetaMod;
+                    {error, _} -> undefined
+                  end,
+      get_extend_data(ParentMod, Child, Options);
+    Error ->
+      Error
+  end.
 
 get_args(_, _, 0) -> [];
 get_args(undefined, _FuncName, Arity) ->
