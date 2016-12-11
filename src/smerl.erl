@@ -1,28 +1,30 @@
-%% @doc Simple Metaprogramming for Erlang
-%% @author AUTHORS
-%% @copyright 2006-2007, 2016 AUTHORS
-%%
-%% ```
-%% Permission is hereby granted, free of charge, to any person
-%% obtaining a copy of this software and associated documentation
-%% files (the "Software"), to deal in the Software without restriction,
-%% including without limitation the rights to use, copy, modify, merge,
-%% publish, distribute, sublicense, and/or sell copies of the Software,
-%% and to permit persons to whom the Software is furnished to do
-%% so, subject to the following conditions:
-%%
-%% The above copyright notice and this permission notice shall be included
-%% in all copies or substantial portions of the Software.
-%%
-%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-%% EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-%% MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-%% IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-%% CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-%% TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-%% SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-%% ```
-
+%%% ============================================================== [ smerl.erl ]
+%%% @doc Simple Metaprogramming for Erlang
+%%% @author AUTHORS
+%%% @copyright 2006-2007, 2016 AUTHORS
+%%%
+%%% ```
+%%% Permission is hereby granted, free of charge, to any person
+%%% obtaining a copy of this software and associated documentation
+%%% files (the "Software"), to deal in the Software without restriction,
+%%% including without limitation the rights to use, copy, modify, merge,
+%%% publish, distribute, sublicense, and/or sell copies of the Software,
+%%% and to permit persons to whom the Software is furnished to do
+%%% so, subject to the following conditions:
+%%%
+%%% The above copyright notice and this permission notice shall be included
+%%% in all copies or substantial portions of the Software.
+%%%
+%%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+%%% EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+%%% MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+%%% IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+%%% CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+%%% TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+%%% SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+%%% ```
+%%% @end
+%%% ==================================================================== [ EOH ]
 -module(smerl).
 -author("Yariv Sadan (yarivsblog@gmail.com, http://yarivsblog.com").
 
@@ -47,7 +49,7 @@
          to_src/1, to_src/2
         ]).
 
-%%% Types.
+%%% ================================================================== [ Types ]
 
 -export_type([args/0, export/0, exports/0,
               func_form/0, func_forms/0,
@@ -88,13 +90,9 @@
 %% TODO: write docstring
 -type result(Value, Error) :: {ok, Value} | {error, Error}.
 
-%% Macros.
--define(L(Obj), io:format("LOG ~s ~w ~p\n", [?FILE, ?LINE, Obj])).
--define(S(Obj), io:format("LOG ~s ~w ~s\n", [?FILE, ?LINE, Obj])).
+%%% ============================================================= [ Public API ]
 
 -include_lib("kernel/include/file.hrl").
-
-%%% Public API.
 
 %% @doc Create a new meta_mod for a module with the given name.
 -spec new(Module :: module()) -> meta_mod().
@@ -926,3 +924,5 @@ to_src(MetaMod) ->
     Error    :: term().
 to_src(MetaMod, Filename) ->
   file:write_file(Filename, to_src(MetaMod)).
+
+%%% ==================================================================== [ EOF ]
