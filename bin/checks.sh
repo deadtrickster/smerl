@@ -1,3 +1,3 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
-./elvis rock && rebar3 do xref, dialyzer, eunit
+rebar3 do lint, xref, dialyzer, eunit
