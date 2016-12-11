@@ -25,6 +25,8 @@
 
 -module(smerl).
 -author("Yariv Sadan (yarivsblog@gmail.com, http://yarivsblog.com").
+
+%% Public API.
 -export([new/1,
          for_module/1, for_module/2, for_module/3,
          for_file/1, for_file/2, for_file/3,
@@ -45,19 +47,52 @@
          to_src/1, to_src/2
         ]).
 
+%%% Types.
+
+-export_type([args/0, export/0, exports/0,
+              func_form/0, func_forms/0,
+              meta_mod/0,
+              result/1, result/2]).
+
+%% TODO: write docstring
+-type args() :: term() | [term()].
+
+%% TODO: write docstring
+-type export() :: {Function :: atom(), Arity :: arity()}.
+
+%% @type exports(). A list of {@type export()}s.
+-type exports() :: [export()].
+
+%% @type func_form(). The abstract form for the function, as described
+%%    in the ERTS Users' manual.
+-type func_form() :: erl_parse:abstract_form().
+
+%% @type func_forms(). A list of {@type func_form()}s.
+-type func_forms() :: [func_form()].
+
+%% The record type holding the abstract representation for a module.
+-record(meta_mod, {module             :: module(),
+                   file               :: file:filename(),
+                   exports    = []    :: exports(),
+                   forms      = []    :: func_forms(),
+                   export_all = false :: boolean()
+                  }).
+
+%% @type meta_mod(). A data structure holding the abstract representation
+%%  for a module.
+-type meta_mod() :: #meta_mod{}.
+
+%% TODO: write docstring
+-type result(Value) :: result(Value, term()).
+
+%% TODO: write docstring
+-type result(Value, Error) :: {ok, Value} | {error, Error}.
+
+%% Macros.
 -define(L(Obj), io:format("LOG ~s ~w ~p\n", [?FILE, ?LINE, Obj])).
 -define(S(Obj), io:format("LOG ~s ~w ~s\n", [?FILE, ?LINE, Obj])).
 
 -include_lib("kernel/include/file.hrl").
-
-%% @type meta_mod(). A data structure holding the abstract representation
-%%  for a module.
-%% @type func_form(). The abstract form for the function, as described
-%%    in the ERTS Users' manual.
-
-%% The record type holding the abstract representation for a module.
--record(meta_mod, {module, file, exports = [], forms = [],
-                   export_all = false}).
 
 %% @doc Create a new meta_mod for a module with the given name.
 %%
